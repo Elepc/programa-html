@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visor de Imágenes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: black;
+      font-family: sans-serif;
+    }
+
+    /* Overlay de bienvenida */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      text-align: center;
+      padding: 20px;
+      transition: opacity 1s ease;
+    }
+
+    .overlay.oculto {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay h1 {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+
+    .overlay button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background: orange;
+      color: white;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .instrucciones {
+      display: none;
+      flex-direction: column;
+      align-items: stretch;
+      width: 90%;
+      max-width: 480px;
+      max-height: 70vh;
+      overflow-y: auto;
+      margin-top: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+      background-color: #222;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: left;
+      color: white;
+    }
+
+    .instrucciones p {
+      width: 100%;
+    }
+
+    .instrucciones button {
+      margin-top: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Visor principal */
+    .visor {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .contenedor-imagenes {
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.6s ease-in-out;
+      height: 100%;
+    }
+
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    .slide img.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Overlay de bienvenida -->
+  <div class="overlay" id="overlay">
+    <h1>📱 Guardá esta página ahora para no perderla dentro del teatro</h1>
+    <button onclick="mostrarInstrucciones()">¿Cómo hacerlo?</button>
+
+    <div class="instrucciones" id="instrucciones">
+      <p id="mensajeInstrucciones"></p>
+      <button onclick="cerrarOverlay()">Entendido</button>
+    </div>
+  </div>
+
+  <!-- Visor principal -->
+  <div class="visor" id="visor">
+    <div class="contenedor-imagenes" id="contenedor">
+      <div class="slide"><img src="1.png" alt="Paso 1: Instrucción visual en pantalla" class="show" /></div>
+      <div class="slide"><img src="2.png" alt="Paso 2: Ejemplo de navegación en la app" /></div>
+      <div class="slide"><img src="3.png" alt="Paso 3: Imagen ilustrativa del contenido" /></div>
+      <div class="slide"><img src="4.png" alt="Paso 4: Imagen informativa adicional" /></div>
+      <div class="slide"><img src="5.png" alt="Paso 5: Visual final o cierre del visor" /></div>
+    </div>
+  </div>
+
+  <script>
+    const contenedor = document.getElementById("contenedor");
+    const visor = document.getElementById("visor");
+    const imagenes = document.querySelectorAll(".slide img");
+    const total = imagenes.length;
+    let indice = 0;
+
+    function actualizarImagen() {
+      imagenes.forEach((img) => img.classList.remove("show"));
+      contenedor.style.transform = `translateY(-${indice * 100}vh)`;
+      imagenes[indice].classList.add("show");
+    }
+
+    function siguiente() {
+      indice = (indice + 1) % total;
+      actualizarImagen();
+    }
+
+    function anterior() {
+      indice = (indice - 1 + total) % total;
+      actualizarImagen();
+    }
+
+    function mostrarInstrucciones() {
+      document.getElementById("instrucciones").style.display = "flex";
+    }
+
+    function cerrarOverlay() {
+      const overlay = document.getElementById("overlay");
+      overlay.classList.add("oculto");
+      sessionStorage.setItem("overlayVisto", "true");
+
+      setTimeout(() => {
+        overlay.style.display = "none";
+        imagenes[indice].classList.add("show");
+      }, 500);
+    }
+
+    // Gestos táctiles
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    visor.addEventListener("touchstart", (e) => {
+      touchStartY = e.changedTouches[0].clientY;
+    });
+
+    visor.addEventListener("touchend", (e) => {
+      touchEndY = e.changedTouches[0].clientY;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const deltaY = touchEndY - touchStartY;
+      const umbral = 50;
+
+      if (Math.abs(deltaY) > umbral) {
+        deltaY > 0 ? anterior() : siguiente();
+      }
+    }
+
+    // Detectar dispositivo y mostrar instrucciones
+    function detectarDispositivo() {
+      const mensaje = document.getElementById("mensajeInstrucciones");
+
+      mensaje.innerHTML = `
+        <strong>Pasos para guardar esta página:</strong>
+        <br/><br/>
+        <strong>📱 iPhone / iPad:</strong>
+        <ol>
+          <li>Usá Safari (ícono de brújula).</li>
+          <li>Tocá el botón <strong>Compartir</strong> → “Agregar a pantalla de inicio”.</li>
+        </ol>
+
+        <strong>🤖 Android:</strong>
+        <ol>
+          <li>Tres puntos arriba → “Agregar a pantalla principal”.</li>
+        </ol>
+
+        <strong>🌐 Otros:</strong>
+        <ol>
+          <li>Opciones del navegador → “Agregar a pantalla de inicio”.</li>
+        </ol>
+      `;
+    }
+
+    window.onload = () => {
+      detectarDispositivo();
+
+      const overlay = document.getElementById("overlay");
+      if (!sessionStorage.getItem("overlayVisto")) {
+        overlay.style.display = "flex";
+      } else {
+        overlay.style.display = "none";
+      }
+    };
+  </script>
+</body>
+</html>
