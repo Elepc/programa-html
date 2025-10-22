@@ -3,250 +3,180 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Visor de Imágenes</title>
+  <title>Teatro - Visor Final Suave</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:system-ui, sans-serif; color:#fff; }
 
-    body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background-color: black;
-      font-family: sans-serif;
-    }
-
-    /* Overlay de bienvenida */
+    /* Overlay inicial */
     .overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: black;
-      color: white;
+      inset: 0;
+      background: #000; /* fondo negro sólido */
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
       z-index: 20;
       text-align: center;
-      padding: 20px;
-      transition: opacity 1s ease;
+      padding: 16px;
+      transition: opacity 1.5s ease; /* fade más lento */
+    }
+    .overlay.oculto { opacity:0; pointer-events:none; }
+
+    .overlay .box {
+      background: rgba(200,200,200,0.1); /* gris tenue semi-transparente */
+      border-radius: 12px;
+      padding: 16px 20px;
+      max-width: 360px;
+      width: calc(100% - 40px);
+      text-align: center;
     }
 
-    .overlay.oculto {
-      opacity: 0;
-      pointer-events: none;
-    }
+    .overlay h2 { font-size: 18px; margin-bottom: 10px; }
+    .overlay p { font-size: 14px; line-height: 1.5; margin: 6px 0; }
 
-    .overlay h1 {
-      font-size: 20px;
-      margin-bottom: 15px;
-    }
-
-    .overlay button {
-      padding: 10px 20px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
+    .overlay .btn {
+      padding: 10px 16px;
+      border-radius: 10px;
       background: orange;
-      color: white;
+      color: #000;
+      font-weight: 600;
+      border: none;
       cursor: pointer;
       margin-top: 10px;
+      font-size: 14px;
     }
 
-    .instrucciones {
-      display: none;
-      flex-direction: column;
-      align-items: stretch;
-      width: 90%;
-      max-width: 480px;
-      max-height: 70vh;
-      overflow-y: auto;
-      margin-top: 20px;
-      font-size: 16px;
-      line-height: 1.5;
-      background-color: #222;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: left;
-      color: white;
+    /* Contenedor de imágenes */
+    .viewer { position: relative; width:100%; height:100%; overflow:hidden; touch-action: pan-y pinch-zoom; background:#000; }
+    .contenedor {
+      display:flex; flex-direction:column;
+      transition: transform 1.5s cubic-bezier(0.25, 1.5, 0.5, 1); /* bounce ligeramente más rápido */
+      height:100%;
     }
+    .slide { width:100%; height:100vh; flex-shrink:0; position:relative; }
+    .slide img { width:100%; height:100%; object-fit:contain; display:block; opacity:0; transition: opacity 1.5s ease; user-select:none; -webkit-user-drag:none; }
+    .slide img.show { opacity:1; }
 
-    .instrucciones p {
-      width: 100%;
+    /* Fade a negro final */
+    .fade-black {
+      position: fixed; inset:0; background:#000; opacity:0; z-index:10;
+      pointer-events:none; transition: opacity 1s ease;
     }
-
-    .instrucciones button {
-      margin-top: 10px;
-      flex-shrink: 0;
-    }
-
-    /* Visor principal */
-    .visor {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .contenedor-imagenes {
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.6s ease-in-out;
-      height: 100%;
-    }
-
-    .slide {
-      width: 100vw;
-      height: 100vh;
-      flex-shrink: 0;
-    }
-
-    .slide img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      opacity: 0;
-      transition: opacity 1s ease;
-      pointer-events: none;
-    }
-
-    .slide img.show {
-      opacity: 1;
-    }
+    .fade-black.visible { opacity:1; }
   </style>
 </head>
 <body>
-  <!-- Overlay de bienvenida -->
+  <!-- Overlay -->
   <div class="overlay" id="overlay">
-    <h1>📱 Guardá esta página ahora para no perderla dentro del teatro</h1>
-    <button onclick="mostrarInstrucciones()">¿Cómo hacerlo?</button>
-
-    <div class="instrucciones" id="instrucciones">
-      <p id="mensajeInstrucciones"></p>
-      <button onclick="cerrarOverlay()">Entendido</button>
+    <div class="box">
+      <h2>¡Atención!</h2>
+      <p>Guarda estas imágenes en tu celular ahora (mantén presionada la imagen → Guardar/Descargar) porque después de entrar al teatro no tendrás acceso al código QR.</p>
+      <p>Gestos: puedes hacer zoom con dos dedos o con índice y pulgar.</p>
+      <p>Desliza <strong>hacia arriba o hacia abajo</strong> para ver la siguiente o la anterior imagen.</p>
+      <button class="btn" id="entendido">Entendido</button>
     </div>
   </div>
 
-  <!-- Visor principal -->
-  <div class="visor" id="visor">
-    <div class="contenedor-imagenes" id="contenedor">
-      <div class="slide"><img src="1.png" alt="Paso 1: Instrucción visual en pantalla" class="show" /></div>
-      <div class="slide"><img src="2.png" alt="Paso 2: Ejemplo de navegación en la app" /></div>
-      <div class="slide"><img src="3.png" alt="Paso 3: Imagen ilustrativa del contenido" /></div>
-      <div class="slide"><img src="4.png" alt="Paso 4: Imagen informativa adicional" /></div>
-      <div class="slide"><img src="5.png" alt="Paso 5: Visual final o cierre del visor" /></div>
+  <!-- Fade negro final -->
+  <div class="fade-black" id="fadeBlack"></div>
+
+  <!-- Contenedor principal -->
+  <div class="viewer" id="viewer">
+    <div class="contenedor" id="contenedor">
+      <div class="slide"><img src="1.png" class="show" /></div>
+      <div class="slide"><img src="2.png" /></div>
+      <div class="slide"><img src="3.png" /></div>
+      <div class="slide"><img src="4.png" /></div>
+      <div class="slide"><img src="5.png" /></div>
     </div>
   </div>
 
   <script>
-    const contenedor = document.getElementById("contenedor");
-    const visor = document.getElementById("visor");
-    const imagenes = document.querySelectorAll(".slide img");
-    const total = imagenes.length;
-    let indice = 0;
+    const overlay = document.getElementById('overlay');
+    const btn = document.getElementById('entendido');
+    const contenedor = document.getElementById('contenedor');
+    const slides = document.querySelectorAll('.slide img');
+    const fadeBlack = document.getElementById('fadeBlack');
 
-    function actualizarImagen() {
-      imagenes.forEach((img) => img.classList.remove("show"));
-      contenedor.style.transform = `translateY(-${indice * 100}vh)`;
-      imagenes[indice].classList.add("show");
+    let indice = 0;
+    let startY = 0;
+
+    function actualizarImagen(bounce=true) {
+      slides.forEach(img => img.classList.remove('show'));
+      slides[indice].classList.add('show');
+      if(bounce){
+        contenedor.style.transition = "transform 1.5s cubic-bezier(0.25, 1.5, 0.5, 1)";
+      } else {
+        contenedor.style.transition = "none";
+      }
+      contenedor.style.transform = `translateY(-${indice*100}vh)`;
     }
 
     function siguiente() {
-      indice = (indice + 1) % total;
-      actualizarImagen();
+      if(indice === slides.length-1) {
+        fadeBlack.classList.add('visible');
+        setTimeout(()=>{
+          fadeBlack.classList.remove('visible');
+          indice = 0;
+          actualizarImagen(false);
+          setTimeout(()=>actualizarImagen(true),50);
+        },1000);
+      } else {
+        indice++;
+        actualizarImagen();
+      }
     }
 
     function anterior() {
-      indice = (indice - 1 + total) % total;
-      actualizarImagen();
-    }
-
-    function mostrarInstrucciones() {
-      document.getElementById("instrucciones").style.display = "flex";
-    }
-
-    function cerrarOverlay() {
-      const overlay = document.getElementById("overlay");
-      overlay.classList.add("oculto");
-      sessionStorage.setItem("overlayVisto", "true");
-
-      setTimeout(() => {
-        overlay.style.display = "none";
-        imagenes[indice].classList.add("show");
-      }, 500);
-    }
-
-    // Gestos táctiles con prevención de pinch-zoom
-    let touchStartY = 0;
-    let touchEndY = 0;
-    let multiTouch = false;
-
-    visor.addEventListener("touchstart", (e) => {
-      if (e.touches.length > 1) {
-        multiTouch = true; // detecta zoom con dos dedos
-        return;
-      }
-      touchStartY = e.changedTouches[0].clientY;
-    });
-
-    visor.addEventListener("touchend", (e) => {
-      if (multiTouch) {
-        multiTouch = false; // resetea y no cambia slide
-        return;
-      }
-      touchEndY = e.changedTouches[0].clientY;
-      handleSwipe();
-    });
-
-    function handleSwipe() {
-      const deltaY = touchEndY - touchStartY;
-      const umbral = window.innerHeight * 0.15; // 15% altura de pantalla
-      if (Math.abs(deltaY) > umbral) {
-        deltaY > 0 ? anterior() : siguiente();
-      }
-    }
-
-    // Detectar dispositivo y mostrar instrucciones
-    function detectarDispositivo() {
-      const mensaje = document.getElementById("mensajeInstrucciones");
-
-      mensaje.innerHTML = `
-        <strong>Pasos para guardar esta página:</strong>
-        <br/><br/>
-        <strong>📱 iPhone / iPad:</strong>
-        <ol>
-          <li>Usá Safari (ícono de brújula).</li>
-          <li>Tocá el botón <strong>Compartir</strong> → “Agregar a pantalla de inicio”.</li>
-        </ol>
-
-        <strong>🤖 Android:</strong>
-        <ol>
-          <li>Tres puntos arriba → “Agregar a pantalla principal”.</li>
-        </ol>
-
-        <strong>🌐 Otros:</strong>
-        <ol>
-          <li>Opciones del navegador → “Agregar a pantalla de inicio”.</li>
-        </ol>
-      `;
-    }
-
-    window.onload = () => {
-      detectarDispositivo();
-      const overlay = document.getElementById("overlay");
-      if (!sessionStorage.getItem("overlayVisto")) {
-        overlay.style.display = "flex";
+      if(indice === 0) {
+        fadeBlack.classList.add('visible');
+        setTimeout(()=>{
+          fadeBlack.classList.remove('visible');
+          indice = slides.length-1;
+          actualizarImagen(false);
+          setTimeout(()=>actualizarImagen(true),50);
+        },1000);
       } else {
-        overlay.style.display = "none";
+        indice--;
+        actualizarImagen();
       }
-    };
+    }
+
+    // Gestos táctiles
+    const viewer = document.getElementById('viewer');
+    viewer.addEventListener('touchstart', e => { startY = e.changedTouches[0].clientY; });
+    viewer.addEventListener('touchend', e => {
+      const endY = e.changedTouches[0].clientY;
+      const diff = startY - endY;
+      if(Math.abs(diff)<50) return;
+      diff>0 ? siguiente() : anterior();
+    });
+
+    // Cerrar overlay
+    btn.addEventListener('click', () => {
+      overlay.classList.add('oculto');
+      setTimeout(()=>overlay.style.display='none',1600); // coincide con fade 1.5s
+    });
+
+    // Zoom táctil
+    let pinchStart = null, currentScale = 1;
+    viewer.addEventListener('touchmove', e => {
+      if(e.touches.length===2){
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx,dy);
+        if(!pinchStart) pinchStart = dist;
+        const scale = Math.min(4, Math.max(1, currentScale*(dist/pinchStart)));
+        slides[indice].style.transform = `scale(${scale})`;
+      }
+    });
+    viewer.addEventListener('touchend', e => {
+      if(e.touches.length<2){
+        const transform = slides[indice].style.transform;
+        currentScale = transform.includes('scale') ? parseFloat(transform.replace(/[^0-9.]/g,'')) : 1;
+        pinchStart = null;
+      }
+    });
   </script>
-</body>
-</html>
+</bod
