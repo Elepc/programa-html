@@ -8,43 +8,64 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:system-ui, sans-serif; color:#fff; }
 
-    /* Pantalla de ayuda */
+    /* Overlay inicial */
     .overlay {
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background: #000;
-      display: flex; justify-content: center; align-items: center;
-      z-index: 20; text-align: center; padding: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      text-align: center;
+      padding: 16px;
       transition: opacity 1.5s ease;
     }
     .overlay.oculto { opacity:0; pointer-events:none; }
 
     .overlay .box {
       background: rgba(200,200,200,0.1);
-      border-radius: 12px; padding: 16px 20px;
-      max-width: 360px; width: calc(100% - 40px); text-align: center;
+      border-radius: 12px;
+      padding: 16px 20px;
+      max-width: 360px;
+      width: calc(100% - 40px);
+      text-align: center;
     }
 
     .overlay h2 { font-size: 18px; margin-bottom: 10px; }
     .overlay p { font-size: 14px; line-height: 1.5; margin: 6px 0; }
+
     .overlay .btn {
-      padding: 10px 16px; border-radius: 10px; background: orange;
-      color: #000; font-weight: 600; border: none; cursor: pointer;
-      margin-top: 10px; font-size: 14px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: orange;
+      color: #000;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 14px;
     }
 
-    /* Contenedor principal */
+    /* Contenedor de imágenes */
     .viewer { position: relative; width:100%; height:100%; overflow:hidden; touch-action: pan-y pinch-zoom; background:#000; }
-    .contenedor { display:flex; flex-direction:column; transition: transform 1.5s cubic-bezier(0.25, 1.5, 0.5, 1); height:100%; }
+    .contenedor {
+      display:flex; flex-direction:column;
+      transition: transform 1.5s cubic-bezier(0.25, 1.5, 0.5, 1);
+      height:100%;
+    }
     .slide { width:100%; height:100vh; flex-shrink:0; position:relative; overflow:hidden; }
     .slide img {
       width:100%; height:100%;
       object-fit: contain; display:block;
       opacity:0; transition: opacity 1.5s ease;
       user-select:none; -webkit-user-drag:none;
-      touch-action: none; transform-origin: center center;
+      touch-action: none;
+      transform-origin: center center;
     }
     .slide img.show { opacity:1; }
 
+    /* Fade a negro final */
     .fade-black {
       position: fixed; inset:0; background:#000; opacity:0; z-index:10;
       pointer-events:none; transition: opacity 1s ease;
@@ -91,29 +112,35 @@
     let panOffset = { x: 0, y: 0 };
     let currentScale = 1;
 
-    /* --- Fade correcto entre imágenes --- */
     function actualizarImagen(bounce=true) {
       const imgActual = slides[indice];
 
+      // Fade out de las otras imágenes
       slides.forEach((img, i) => {
-        img.classList.remove('show');
-        if (i !== indice) {
-          img.style.transition = "opacity 1.5s ease";
+        if(i !== indice){
           img.style.opacity = 0;
+          img.style.transition = "opacity 1.5s ease";
         }
       });
 
+      // Fade in de la imagen actual
       imgActual.classList.add('show');
       imgActual.style.transition = "opacity 1.5s ease";
       imgActual.style.opacity = 1;
 
-      if (currentScale === 1) {
+      // Reset transform si no hay zoom
+      if(currentScale === 1){
         imgActual.style.transform = "translate(0,0) scale(1)";
         imgActual.style.objectFit = "contain";
         panOffset = {x:0, y:0};
       }
 
-      contenedor.style.transition = bounce ? "transform 1.5s cubic-bezier(0.25, 1.5, 0.5, 1)" : "none";
+      if(bounce){
+        contenedor.style.transition = "transform 1.5s cubic-bezier(0.25, 1.5, 0.5, 1)";
+      } else {
+        contenedor.style.transition = "none";
+      }
+
       contenedor.style.transform = `translateY(-${indice*100}vh)`;
     }
 
@@ -122,10 +149,14 @@
         fadeBlack.classList.add('visible');
         setTimeout(()=>{
           fadeBlack.classList.remove('visible');
-          indice = 0; actualizarImagen(false);
+          indice = 0;
+          actualizarImagen(false);
           setTimeout(()=>actualizarImagen(true),50);
         },1000);
-      } else { indice++; actualizarImagen(); }
+      } else {
+        indice++;
+        actualizarImagen();
+      }
     }
 
     function anterior() {
@@ -133,13 +164,17 @@
         fadeBlack.classList.add('visible');
         setTimeout(()=>{
           fadeBlack.classList.remove('visible');
-          indice = slides.length-1; actualizarImagen(false);
+          indice = slides.length-1;
+          actualizarImagen(false);
           setTimeout(()=>actualizarImagen(true),50);
         },1000);
-      } else { indice--; actualizarImagen(); }
+      } else {
+        indice--;
+        actualizarImagen();
+      }
     }
 
-    // GESTOS
+    // Gestos táctiles corregidos
     viewer.addEventListener('touchstart', e => {
       const img = slides[indice];
       img.style.transition = "transform 0.3s ease-out";
@@ -219,19 +254,6 @@
 
         } else if (isPanning) {
           isPanning = false;
-
-          // 💫 Rebote suave sin mostrar negro
-          if (currentScale > 1) {
-            const imgRect = img.getBoundingClientRect();
-            const maxPanX = (imgRect.width * (currentScale - 1)) / 2;
-            const maxPanY = (imgRect.height * (currentScale - 1)) / 2;
-
-            img.style.transition = "transform 0.4s cubic-bezier(0.25, 1.5, 0.5, 1)";
-            panOffset.x = Math.max(-maxPanX, Math.min(maxPanX, panOffset.x));
-            panOffset.y = Math.max(-maxPanY, Math.min(maxPanY, panOffset.y));
-            img.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${currentScale})`;
-          }
-
         } else {
           if(currentScale === 1){
             const endY = e.changedTouches[0].clientY;
