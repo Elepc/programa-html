@@ -71,7 +71,9 @@
     .fade-black.visible { opacity:1; }
   </style>
 </head>
+
 <body>
+
   <div class="overlay" id="overlay">
     <div class="box">
       <h2>¡Atención!</h2>
@@ -91,9 +93,11 @@
       <div class="slide"><img src="3.png" /></div>
       <div class="slide"><img src="4.png" /></div>
       <div class="slide"><img src="5.png" /></div>
+      <div class="slide"><img src="6.png" /></div>
     </div>
   </div>
 
+  <!-- SCRIPT COMPLETO Y FUNCIONAL -->
   <script>
     const overlay = document.getElementById('overlay');
     const btn = document.getElementById('entendido');
@@ -113,12 +117,10 @@
 
     function actualizarImagen(bounce=true) {
       const imgActual = slides[indice];
+      
       slides.forEach((img, i) => {
-        if(i === indice){
-          img.classList.add('show'); // fade in
-        } else {
-          img.classList.remove('show'); // fade out
-        }
+        if(i === indice) img.classList.add('show');
+        else img.classList.remove('show');
       });
 
       if(currentScale === 1){
@@ -162,12 +164,11 @@
       }
     }
 
-    // Gestos táctiles: doble toque centrado y movimiento
     viewer.addEventListener('touchstart', e => {
       const img = slides[indice];
       const now = Date.now();
 
-      // Doble toque
+      // DOBLE TOQUE (ZOOM)
       if(now - lastTap < 300 && e.touches.length ===1){
         ignoreSwipe = true;
         setTimeout(()=>ignoreSwipe=false, 300);
@@ -209,40 +210,44 @@
 
     viewer.addEventListener('touchmove', e => {
       const img = slides[indice];
-      const rect = viewer.getBoundingClientRect();
 
       if(isPanning && e.touches.length===1 && currentScale>1){
-        panOffset.x = e.touches[0].clientX - startPan.x;
-        panOffset.y = e.touches[0].clientY - startPan.y;
+        const x = e.touches[0].clientX - startPan.x;
+        const y = e.touches[0].clientY - startPan.y;
 
-        const maxPanX = (rect.width * (currentScale - 1)) / 2;
-        const maxPanY = (rect.height * (currentScale - 1)) / 2;
+        const rect = img.getBoundingClientRect();
+        const maxPanX = (rect.width * (currentScale -1))/2;
+        const maxPanY = (rect.height * (currentScale -1))/2;
 
-        panOffset.x = Math.max(-maxPanX, Math.min(maxPanX, panOffset.x));
-        panOffset.y = Math.max(-maxPanY, Math.min(maxPanY, panOffset.y));
+        panOffset.x = Math.max(-maxPanX, Math.min(maxPanX, x));
+        panOffset.y = Math.max(-maxPanY, Math.min(maxPanY, y));
 
         img.style.transform = `translate(${panOffset.x}px, ${panOffset.y}px) scale(${currentScale})`;
-        e.preventDefault();
+        return;
       }
     });
 
     viewer.addEventListener('touchend', e => {
-      const img = slides[indice];
-      isPanning = false;
+      if(isPanning){
+        isPanning = false;
+        return;
+      }
 
-      if(currentScale===1 && !ignoreSwipe){
-        const endY = e.changedTouches[0].clientY;
-        const diff = startY - endY;
-        if(Math.abs(diff)>50){
-          diff>0 ? siguiente() : anterior();
-        }
+      if(ignoreSwipe) return;
+
+      let endY = e.changedTouches[0].clientY;
+      let diff = endY - startY;
+
+      if(Math.abs(diff) > 60){
+        if(diff < 0) siguiente();
+        else anterior();
       }
     });
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', ()=>{
       overlay.classList.add('oculto');
-      setTimeout(()=>overlay.style.display='none',1600);
     });
   </script>
+
 </body>
 </html>
